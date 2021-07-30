@@ -44,15 +44,14 @@ def download_progress_bar(count_blocks, block_size, total_size):
 
 
 def configure_youtube_dl() -> (list, str):
-    options = ""
-    url = ""
     sg.theme('Dark Blue 3')
 
     layout = [[sg.Text("Youtube-dl Configurations)")],
-              [sg.Text("Target Folder"), sg.Input(key="Folder"), sg.FolderBrowse()],
-              [sg.Text("Filename with extension"), sg.Input(key="Filename")],
               [sg.Text("Video/Playlist URL"), sg.Input(key="URL"), sg.Checkbox("is Playlist?", default=False, key="Playlist")],
-              [sg.Text("Other Options"), sg.Input(default_text="", key="Other")],
+              [sg.Text("Target Folder"), sg.Input(key="Folder"), sg.FolderBrowse()],
+              [sg.Text("Filename"), sg.Input("%(title)s", key="Filename")],
+              [sg.Text("File Format"), sg.Combo(["mp4", "mp3", "wav", "3gp", "aac", "flv", "m4a", "ogg", "webm"], key="Format")],
+              [sg.Text("Other Options"), sg.Input(key="Other")],
               [sg.OK(), sg.Cancel()]]
 
     window = sg.Window('Get filename example', layout)
@@ -61,14 +60,23 @@ def configure_youtube_dl() -> (list, str):
 
     if event == "OK":
         is_playlist = "--yes-playlist" if values["Playlist"] else "--no-playlist"
-        full_path = f'{values["Folder"]}/{values["Filename"]}'
-        options = f'{is_playlist} -o "{full_path}"'
+        file_format = values["Format"]
+        full_path = f'{values["Folder"]}/{values["Filename"]}.%(ext)s'
 
-        url = values["URL"]
+        options = [is_playlist, "-o", full_path]
+        if file_format == "mp3" or file_format == "wav"\
+                or file_format == "aac" or file_format == "m4a":
+            options += ["--extract-audio", "--audio-format", file_format]
+        else:
+            options += ["-f", file_format]
+
+        if values["Other"]:
+            options += values["Other"].split(" ")
+
+        return options, values["URL"]
     else:
         sys.exit(0)
 
-    return [is_playlist, "-o", full_path], url
 
 
 def main():
@@ -84,14 +92,18 @@ def main():
 
     process = subprocess.Popen(cmd_list,
                                stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE,
                                universal_newlines=True)
 
     while True:
         output = process.stdout.readline()
+        error_out = process.stderr.readline()
         if process.poll() is not None:
             return
         if output:
             sg.Print(output.strip())
+        if error_out:
+            sg.popup_error(error_out)
 
 
 if __name__ == "__main__":
