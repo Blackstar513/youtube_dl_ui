@@ -61,7 +61,7 @@ def download_ffmpeg(directory: str) -> str:
     dir_zip = f"{directory}/{zip_name}"
 
     if not already_downloaded_ffmpeg(directory):
-        urllib.request.urlretrieve(f"https://www.gyan.dev/ffmpeg/builds/{zip_name}", dir_zip,
+        urllib.request.urlretrieve(f"https://www.gyan.dev/ffmpeg/builds/{zip_name}.zip", dir_zip,
                                    reporthook=ffmpeg_download_progress_bar)
         unpack_ffmpeg(directory, zip_name)
     #
