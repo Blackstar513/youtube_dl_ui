@@ -41,7 +41,7 @@ def download_youtube_dl(directory: str) -> str:
 
     if not already_downloaded_youtube_dl(directory):
         urllib.request.urlretrieve(f"https://yt-dl.org/downloads/latest/{filename}", dir_file,
-                                   reporthook=download_progress_bar)
+                                   reporthook=youtube_dl_download_progress_bar)
 
         if system() == "Linux":
             chmod(dir_file, 0o0555)
@@ -53,7 +53,7 @@ def download_ffmpeg(directory: str) -> str:
     Path(directory).mkdir(parents=True, exist_ok=True)
 
     filename = "ffmpeg"
-    zip_name = "ffmpeg-release-essentials.zip"
+    zip_name = "ffmpeg-release-essentials"
     if system() == "Windows":
         filename = f"{filename}.exe"
 
@@ -62,7 +62,7 @@ def download_ffmpeg(directory: str) -> str:
 
     if not already_downloaded_ffmpeg(directory):
         urllib.request.urlretrieve(f"https://www.gyan.dev/ffmpeg/builds/{zip_name}", dir_zip,
-                                   reporthook=download_progress_bar)
+                                   reporthook=ffmpeg_download_progress_bar)
         unpack_ffmpeg(directory, zip_name)
     #
     #     if system() == "Linux":
@@ -72,16 +72,24 @@ def download_ffmpeg(directory: str) -> str:
 
 
 def unpack_ffmpeg(directory: str, zip_name: str):
-    if system() == "Windows":
-        with ZipFile(f"{directory}/{zip_name}") as z:
+    if system() == "Windows" or "Linux":
+        with ZipFile(f"{directory}/{zip_name}.zip") as z:
             with open(f"{directory}/ffmpeg.exe", "wb") as f:
-                f.write(z.read("/bin/ffmpeg.exe"))
-        remove(f"{directory}/{zip_name}")
+                f.write(z.read(f"{z.namelist()[0]}bin/ffmpeg.exe"))
+        remove(f"{directory}/{zip_name}.zip")
 
 
-def download_progress_bar(count_blocks, block_size, total_size):
-    sg.one_line_progress_meter("Download", count_blocks * block_size, total_size, "Downloading Youtube-dl",
+def download_progress_bar(download_name: str, count_blocks, block_size, total_size):
+    sg.one_line_progress_meter("Download", count_blocks * block_size, total_size, f"Downloading {download_name}",
                                orientation="h", key="download")
+
+
+def youtube_dl_download_progress_bar(count_blocks, block_size, total_size):
+    download_progress_bar("Youtube-dl", count_blocks, block_size, total_size)
+
+
+def ffmpeg_download_progress_bar(count_blocks, block_size, total_size):
+    download_progress_bar("ffmpeg", count_blocks, block_size, total_size)
 
 
 def configure_youtube_dl() -> (list, str):
