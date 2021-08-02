@@ -1,19 +1,30 @@
 from platform import system
-from os import chmod
+from os import chmod, remove
 from pathlib import Path
 import urllib.request
 import PySimpleGUI as sg
 import sys
 import subprocess
-# import youtube_dl
+from zipfile import ZipFile
 
 
-def already_downloaded(directory: str) -> bool:
+def already_downloaded_youtube_dl(directory: str) -> bool:
     if system() == "Linux":
         p = Path(f"{directory}/youtube-dl")
         return p.exists()
     elif system() == "Windows":
         p = Path(f"{directory}/youtube-dl.exe")
+        return p.exists()
+    else:
+        raise OSError("Unsupported OS")
+
+
+def already_downloaded_ffmpeg(directory: str) -> bool:
+    if system() == "Linux":
+        p = Path(f"{directory}/ffmpeg")
+        return p.exists()
+    elif system() == "Windows":
+        p = Path(f"{directory}/ffmpeg.exe")
         return p.exists()
     else:
         raise OSError("Unsupported OS")
@@ -28,7 +39,7 @@ def download_youtube_dl(directory: str) -> str:
 
     dir_file = f"{directory}/{filename}"
 
-    if not already_downloaded(directory):
+    if not already_downloaded_youtube_dl(directory):
         urllib.request.urlretrieve(f"https://yt-dl.org/downloads/latest/{filename}", dir_file,
                                    reporthook=download_progress_bar)
 
@@ -36,6 +47,36 @@ def download_youtube_dl(directory: str) -> str:
             chmod(dir_file, 0o0555)
 
     return dir_file
+
+
+def download_ffmpeg(directory: str) -> str:
+    Path(directory).mkdir(parents=True, exist_ok=True)
+
+    filename = "ffmpeg"
+    zip_name = "ffmpeg-release-essentials.zip"
+    if system() == "Windows":
+        filename = f"{filename}.exe"
+
+    dir_file = f"{directory}/{filename}"
+    dir_zip = f"{directory}/{zip_name}"
+
+    if not already_downloaded_ffmpeg(directory):
+        urllib.request.urlretrieve(f"https://www.gyan.dev/ffmpeg/builds/{zip_name}", dir_zip,
+                                   reporthook=download_progress_bar)
+        unpack_ffmpeg(directory, zip_name)
+    #
+    #     if system() == "Linux":
+    #         chmod(dir_file, 0o0555)
+
+    return dir_file
+
+
+def unpack_ffmpeg(directory: str, zip_name: str):
+    if system() == "Windows":
+        with ZipFile(f"{directory}/{zip_name}") as z:
+            with open(f"{directory}/ffmpeg.exe", "wb") as f:
+                f.write(z.read("/bin/ffmpeg.exe"))
+        remove(f"{directory}/{zip_name}")
 
 
 def download_progress_bar(count_blocks, block_size, total_size):
@@ -78,10 +119,12 @@ def configure_youtube_dl() -> (list, str):
         sys.exit(0)
 
 
-
 def main():
     sg.theme('Dark Blue 3')
-    youtube_dl_executable = download_youtube_dl("./downloader")
+
+    needed_programs_folder = "./downloader"
+    youtube_dl_executable = download_youtube_dl(needed_programs_folder)
+    ffmpeg = download_ffmpeg(needed_programs_folder)
 
     options, url = configure_youtube_dl()
 
