@@ -8,6 +8,9 @@ import subprocess
 from zipfile import ZipFile
 
 
+NEEDED_PROGRAMS_FOLDER = "./downloader"
+
+
 def already_downloaded_youtube_dl(directory: str) -> bool:
     if system() == "Linux":
         p = Path(f"{directory}/youtube-dl")
@@ -58,7 +61,7 @@ def download_ffmpeg(directory: str) -> str:
         filename = f"{filename}.exe"
 
     dir_file = f"{directory}/{filename}"
-    dir_zip = f"{directory}/{zip_name}"
+    dir_zip = f"{directory}/{zip_name}.zip"
 
     if not already_downloaded_ffmpeg(directory):
         urllib.request.urlretrieve(f"https://www.gyan.dev/ffmpeg/builds/{zip_name}.zip", dir_zip,
@@ -115,7 +118,8 @@ def configure_youtube_dl() -> (list, str):
         options = [is_playlist, "-o", full_path]
         if file_format == "mp3" or file_format == "wav"\
                 or file_format == "aac" or file_format == "m4a":
-            options += ["--extract-audio", "--audio-format", file_format]
+            ffmpeg = download_ffmpeg(NEEDED_PROGRAMS_FOLDER)
+            options += ["--extract-audio", "--audio-format", file_format, "--ffmpeg-location", ffmpeg]
         else:
             options += ["-f", file_format]
 
@@ -130,9 +134,7 @@ def configure_youtube_dl() -> (list, str):
 def main():
     sg.theme('Dark Blue 3')
 
-    needed_programs_folder = "./downloader"
-    youtube_dl_executable = download_youtube_dl(needed_programs_folder)
-    ffmpeg = download_ffmpeg(needed_programs_folder)
+    youtube_dl_executable = download_youtube_dl(NEEDED_PROGRAMS_FOLDER)
 
     options, url = configure_youtube_dl()
 
